@@ -1,67 +1,71 @@
 ﻿namespace SkillSnap.Tests;
 
-public class ProjectServiceTests : TestBase
-
+public class ProjectServiceTests : IClassFixture<ProjectServiceFixture>
 {
+    private readonly SkillSnapContext _context;
+    private readonly Mock<IPortfolioValidator> _validator;
+    private readonly ProjectServiceFixture _fixture;
 
 
+    public ProjectServiceTests(ProjectServiceFixture fixture)
+    {
+        _fixture = fixture;
+        _context = fixture.Context;
+        _validator = fixture.ValidatorMock;
+
+    }
     [Fact]
     public async Task AddProjectAsync_ShouldAddProject_WhenTitleIsUnique()
     {
-        using var context = CreateInMemoryContext();
-        var user = CreateTestUser(1, "Alice");
-        context.PortfolioUsers.Add(user);
-        await context.SaveChangesAsync();
+        //Arrange
+        _context.PortfolioUsers.RemoveRange(_context.PortfolioUsers);
+        _context.Projects.RemoveRange(_context.Projects);
+        await _context.SaveChangesAsync();
 
-        var validator = CreateValidatorMock();
-        validator.Setup(v => v.ProjectTitleExistsAsync(1, "New Project", null)).ReturnsAsync(false);
 
-        var service = new ProjectService(context, validator.Object);
-        var dto = new ProjectDto { Title = "New Project", Description = "Cool one", ImageUrl = "url" };
+        var user = new PortfolioUser { Id = 1, Name = "Nina", Bio = "Test", ProfileImageUrl = "url" };
+        _context.PortfolioUsers.Add(user);
+        await _context.SaveChangesAsync();
+
+        _validator.Reset();
+
+        _validator.Setup(v => v.ProjectTitleExistsAsync(1, "My Project", null)).ReturnsAsync(false);
+
+        var service = new ProjectService(_context, _validator.Object);
+        var dto = new ProjectDto { Title = "My Project", Description = "Yes", ImageUrl = "image" };
 
         var result = await service.AddProjectAsync(1, dto);
 
         Assert.NotNull(result);
-        Assert.Equal("New Project", result.Title);
+        Assert.Equal("My Project", result.Title);
     }
-
-
-
-
     [Fact]
     public async Task AddProjectAsync_ShouldThrow_WhenTitleIsDuplicate()
     {
-        // Arrange
-        using var context = CreateInMemoryContext();
-
-        var user = CreateTestUser(1, "Sophie");
+        using var context = _fixture.CreateNewContext();
+        var user = _fixture.CreateUser(2);
         context.PortfolioUsers.Add(user);
         await context.SaveChangesAsync();
 
-        var mockValidator = CreateValidatorMock();
-        mockValidator.Setup(v => v.ProjectTitleExistsAsync(1, "My Project", null))
-                     .ReturnsAsync(true); // Simulate duplicate
+        var validator = new Mock<IPortfolioValidator>();
+        validator.Setup(v => v.ProjectTitleExistsAsync(2, "My Project", null)).ReturnsAsync(true);
 
-        var service = new ProjectService(context, mockValidator.Object);
+        var service = new ProjectService(context, validator.Object);
         var dto = new ProjectDto
         {
             Title = "My Project",
-            Description = "This shouldn't be added",
-            ImageUrl = "https://example.com/collision.jpg"
+            Description = "Shouldn't succeed",
+            ImageUrl = "boom.jpg"
         };
-
-        // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            service.AddProjectAsync(1, dto));
+            service.AddProjectAsync(2, dto));
     }
-
-
     [Fact]
     public async Task UpdateProjectAsync_ShouldUpdateProject_WhenValid()
     {
 
-        using var context = CreateInMemoryContext();
 
+        using var _context = _fixture.CreateNewContext();
 
 
         var user = new PortfolioUser
@@ -75,15 +79,13 @@ public class ProjectServiceTests : TestBase
             new Project { Id = 10, Title = "Old Title", Description = "Old Desc", ImageUrl = "old.jpg" }
         }
         };
-        context.PortfolioUsers.Add(user);
-        await context.SaveChangesAsync();
+        _context.PortfolioUsers.Add(user);
+        await _context.SaveChangesAsync();
 
-        //var mockValidator = new Mock<IPortfolioValidator>();
-        var mockValidator = CreateValidatorMock();
-        mockValidator.Setup(v => v.ProjectTitleExistsAsync(1, "New Title", 10))
-                     .ReturnsAsync(false);
 
-        var service = new ProjectService(context, mockValidator.Object);
+        _validator.Setup(v => v.ProjectTitleExistsAsync(1, "New Title", 10)).ReturnsAsync(false);
+
+        var service = new ProjectService(_context, _validator.Object);
         var dto = new ProjectDto { Title = "New Title", Description = "Updated Desc", ImageUrl = "new.jpg" };
 
         // Act
@@ -99,7 +101,8 @@ public class ProjectServiceTests : TestBase
     public async Task DeleteProjectAsync_ShouldDeleteProject_WhenExists()
     {
 
-        using var context = CreateInMemoryContext();
+
+        using var _context = _fixture.CreateNewContext();
 
 
         var user = new PortfolioUser
@@ -113,19 +116,20 @@ public class ProjectServiceTests : TestBase
             new Project { Id = 20, Title = "To Delete", Description = "Gone soon", ImageUrl = "del.jpg" }
         }
         };
-        context.PortfolioUsers.Add(user);
-        await context.SaveChangesAsync();
+        _context.PortfolioUsers.Add(user);
+        await _context.SaveChangesAsync();
 
-        //  var mockValidator = new Mock<IPortfolioValidator>();
-        var mockValidator = CreateValidatorMock();
-        var service = new ProjectService(context, mockValidator.Object);
+
+        //var mockValidator = CreateValidatorMock();
+
+        var service = new ProjectService(_context, _validator.Object);
 
         // Act
         var result = await service.DeleteProjectAsync(2, 20);
 
         // Assert
         Assert.True(result);
-        Assert.Empty(context.Projects.Where(p => p.Id == 20));
+        Assert.Empty(_context.Projects.Where(p => p.Id == 20));
     }
 
     [Fact]
@@ -133,12 +137,12 @@ public class ProjectServiceTests : TestBase
     {
         // Arrange
 
+        using var _context = _fixture.CreateNewContext();
 
-        using var context = CreateInMemoryContext();
 
 
-        var mockValidator = CreateValidatorMock();
-        var service = new ProjectService(context, mockValidator.Object);
+
+        var service = new ProjectService(_context, _validator.Object);
 
         var updateDto = new ProjectDto { Title = "Doesn't Matter", Description = "None", ImageUrl = "none.jpg" };
 
@@ -148,17 +152,17 @@ public class ProjectServiceTests : TestBase
         // Assert
         Assert.Null(result);
     }
-
+    
     [Fact]
     public async Task DeleteProjectAsync_ShouldReturnFalse_WhenProjectDoesNotExist()
     {
         // Arrange
 
+  using var _context = _fixture.CreateNewContext();
+ 
 
-        using var context = CreateInMemoryContext();
-
-        var mockValidator = CreateValidatorMock();
-        var service = new ProjectService(context, mockValidator.Object);
+        //var mockValidator = CreateValidatorMock();
+        var service = new ProjectService(_context, _validator.Object);
 
         // Act
         var result = await service.DeleteProjectAsync(userId: 1, projectId: 999);
@@ -166,4 +170,6 @@ public class ProjectServiceTests : TestBase
         // Assert
         Assert.False(result);
     }
+
+
 }
