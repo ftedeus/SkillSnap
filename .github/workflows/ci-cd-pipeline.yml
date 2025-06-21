@@ -34,10 +34,10 @@ jobs:
 
       - name: 📊 Generate HTML coverage report
         run: |
-          dotnet tool install --global dotnet-reportgenerator-globaltool
+          dotnet tool install --global dotnet-reportgenerator-globaltool || echo "Already installed"
           dotnet reportgenerator -reports:"**/coverage.cobertura.xml" -targetdir:"CoverageReport" -reporttypes:Html
         env:
-          PATH: ${{ env.PATH }}:$HOME/.dotnet/tools
+          PATH: ${{ env.PATH }}:${{ runner.tool_cache }}/.dotnet/tools:$HOME/.dotnet/tools
 
 
       - name: 📄 Upload coverage report
