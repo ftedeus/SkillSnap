@@ -69,4 +69,118 @@ public class SkillServiceTests : IClassFixture<SkillServiceFixture>
 
         Assert.False(result);
     }
+
+    [Fact]
+    public async Task GetAllSkillsAsync_ShouldReturnAllSkills()
+    {
+        using var context = _fixture.CreateNewContext();
+
+        var user1 = _fixture.CreateUser(1);
+        var user2 = _fixture.CreateUser(2);
+
+        user1.Skills!.Add(_fixture.CreateSkill(1, "C#"));
+        user2.Skills!.Add(_fixture.CreateSkill(2, "SQL"));
+
+        context.PortfolioUsers.AddRange(user1, user2);
+        await context.SaveChangesAsync();
+
+        var validator = new Mock<IPortfolioValidator>();
+        var service = new SkillService(context, validator.Object);
+
+        var result = await service.GetAllSkillsAsync();
+
+        Assert.Equal(2, result.Count);
+        Assert.Contains(result, s => s.Name == "C#");
+        Assert.Contains(result, s => s.Name == "SQL");
+    }
+
+    [Fact]
+    public async Task GetSkillsByUserIdAsync_ShouldReturnUserSkills()
+    {
+        using var context = _fixture.CreateNewContext();
+
+        var user = _fixture.CreateUser(1);
+        user.Skills!.AddRange(new[]
+        {
+        _fixture.CreateSkill(1, "HTML"),
+        _fixture.CreateSkill(2, "CSS")
+    });
+
+        context.PortfolioUsers.Add(user);
+        await context.SaveChangesAsync();
+
+        var validator = new Mock<IPortfolioValidator>();
+        var service = new SkillService(context, validator.Object);
+
+        var result = await service.GetSkillsByUserIdAsync(1);
+
+        Assert.Equal(2, result.Count);
+        Assert.All(result, s => Assert.Contains(s.Name, new[] { "HTML", "CSS" }));
+    }
+
+    [Fact]
+    public async Task GetSkillByIdAsync_ShouldReturnSkill_WhenExists()
+    {
+        using var context = _fixture.CreateNewContext();
+
+        var user = _fixture.CreateUser(1);
+        var skill = _fixture.CreateSkill(1, "JavaScript");
+        user.Skills!.Add(skill);
+
+        context.PortfolioUsers.Add(user);
+        await context.SaveChangesAsync();
+
+        var validator = new Mock<IPortfolioValidator>();
+        var service = new SkillService(context, validator.Object);
+
+        var result = await service.GetSkillByIdAsync(1, 1);
+
+        Assert.NotNull(result);
+        Assert.Equal("JavaScript", result!.Name);
+    }
+
+    [Fact]
+    public async Task GetAllSkillsAsync_ShouldReturnEmptyList_WhenNoSkillsExist()
+    {
+        using var context = _fixture.CreateNewContext();
+        var validator = new Mock<IPortfolioValidator>();
+        var service = new SkillService(context, validator.Object);
+
+        var result = await service.GetAllSkillsAsync();
+
+        Assert.NotNull(result);
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public async Task GetSkillsByUserIdAsync_ShouldReturnEmptyList_WhenUserHasNoSkills()
+    {
+        using var context = _fixture.CreateNewContext();
+        var user = _fixture.CreateUser(1); // No skills added
+        context.PortfolioUsers.Add(user);
+        await context.SaveChangesAsync();
+
+        var validator = new Mock<IPortfolioValidator>();
+        var service = new SkillService(context, validator.Object);
+
+        var result = await service.GetSkillsByUserIdAsync(1);
+
+        Assert.NotNull(result);
+        Assert.Empty(result);
+    }
+[Fact]
+public async Task GetSkillByIdAsync_ShouldReturnNull_WhenSkillNotFound()
+{
+    using var context = _fixture.CreateNewContext();
+    var user = _fixture.CreateUser(1);
+    context.PortfolioUsers.Add(user);
+    await context.SaveChangesAsync();
+
+    var validator = new Mock<IPortfolioValidator>();
+    var service = new SkillService(context, validator.Object);
+
+    var result = await service.GetSkillByIdAsync(1, 404); // Skill ID 404 doesn't exist
+
+    Assert.Null(result);
+}
 }

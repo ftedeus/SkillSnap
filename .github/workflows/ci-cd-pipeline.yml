@@ -17,8 +17,8 @@ jobs:
       - name: 🧰 Setup .NET SDK
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '9.0.x'  
-          dotnet-quality: 'preview'
+          dotnet-version: '9.0.x'   # Adjust if you're using .NET 8 or 7
+          dotnet-quality: 'preview' # Remove if not using a preview SDK
 
       - name: 📦 Restore dependencies
         run: dotnet restore SkillSnap.sln
@@ -26,9 +26,15 @@ jobs:
       - name: 🛠️ Build solution
         run: dotnet build SkillSnap.sln --configuration Release --no-restore
 
-      - name: ✅ Run tests (if any)
-        run: dotnet test SkillSnap.sln --no-build --verbosity normal
+      - name: ✅ Run tests and generate TRX report
+        run: dotnet test SkillSnap.sln --no-build --configuration Release --verbosity normal --logger "trx;LogFileName=test_results.trx"
 
-      # Optional: publish server or client
+      - name: 📄 Upload test results
+        uses: actions/upload-artifact@v3
+        with:
+          name: TestResults
+          path: '**/TestResults/*.trx'
+
+      # Optional: publish project output
       # - name: 🚀 Publish Server
       #   run: dotnet publish Server/Server.csproj --configuration Release --output ./publish

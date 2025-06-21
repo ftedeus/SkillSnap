@@ -90,4 +90,46 @@ public class ProjectService : IProjectService
 
         return true;
     }
+
+    public async Task<List<ProjectDto>> GetProjectsAsync(int userId)
+    {
+        return await _db.Projects
+            .Where(p => p.PortfolioUserId == userId)
+            .Select(p => new ProjectDto
+            {
+                Id = p.Id,
+                Title = p.Title,
+                Description = p.Description,
+                ImageUrl = p.ImageUrl
+            })
+            .ToListAsync();
+    }
+
+    public async Task<ProjectDto?> GetProjectByIdAsync(int userId, int projectId)
+    {
+        var project = await _db.Projects
+            .FirstOrDefaultAsync(p => p.Id == projectId && p.PortfolioUserId == userId);
+
+        if (project is null) return null;
+
+        return new ProjectDto
+        {
+            Id = project.Id,
+            Title = project.Title,
+            Description = project.Description,
+            ImageUrl = project.ImageUrl
+        };
+    }
+    public async Task<List<ProjectDto>> GetProjectsAsync()
+    {
+        return await _db.Projects
+            .Select(p => new ProjectDto
+            {
+                Id = p.Id,
+                Title = p.Title,
+                Description = p.Description,
+                ImageUrl = p.ImageUrl
+            })
+            .ToListAsync();
+    }
 }

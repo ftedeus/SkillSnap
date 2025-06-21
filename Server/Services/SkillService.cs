@@ -86,4 +86,44 @@ public class SkillService : ISkillService
 
         return true;
     }
+
+    public async Task<List<SkillDto>> GetAllSkillsAsync()
+    {
+        return await _db.Skills
+            .Select(s => new SkillDto
+            {
+                Id = s.Id,
+                Name = s.Name,
+                Level = s.Level
+            })
+            .ToListAsync();
+    }
+
+    public async Task<List<SkillDto>> GetSkillsByUserIdAsync(int userId)
+    {
+        return await _db.Skills
+            .Where(s => s.PortfolioUserId == userId)
+            .Select(s => new SkillDto
+            {
+                Id = s.Id,
+                Name = s.Name,
+                Level = s.Level
+            })
+            .ToListAsync();
+    }
+
+    public async Task<SkillDto?> GetSkillByIdAsync(int userId, int skillId)
+    {
+        var skill = await _db.Skills
+            .FirstOrDefaultAsync(s => s.Id == skillId && s.PortfolioUserId == userId);
+
+        if (skill is null) return null;
+
+        return new SkillDto
+        {
+            Id = skill.Id,
+            Name = skill.Name,
+            Level = skill.Level
+        };
+    }
 }

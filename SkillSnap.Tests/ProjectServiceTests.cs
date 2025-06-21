@@ -167,4 +167,99 @@ public class ProjectServiceTests : IClassFixture<ProjectServiceFixture>
         // Assert
         Assert.Null(result);
     }
+
+    [Fact]
+    public async Task GetProjectsAsync_ShouldReturnProjects_ForGivenUser()
+    {
+        using var context = _fixture.CreateNewContext();
+        var user = _fixture.CreateUser(1);
+        user.Projects = new List<Project>
+    {
+        new Project { Id = 1, Title = "Project A", Description = "Desc A", ImageUrl = "a.jpg" },
+        new Project { Id = 2, Title = "Project B", Description = "Desc B", ImageUrl = "b.jpg" }
+    };
+
+        context.PortfolioUsers.Add(user);
+        await context.SaveChangesAsync();
+
+        var validator = new Mock<IPortfolioValidator>();
+        var service = new ProjectService(context, validator.Object);
+
+        var result = await service.GetProjectsAsync(1);
+
+        Assert.Equal(2, result.Count);
+        Assert.Contains(result, p => p.Title == "Project A");
+        Assert.Contains(result, p => p.Title == "Project B");
+    }
+
+    [Fact]
+    public async Task GetProjectByIdAsync_ShouldReturnProject_WhenExists()
+    {
+        using var context = _fixture.CreateNewContext();
+        var user = _fixture.CreateUser(1);
+        user.Projects = new List<Project>
+    {
+        new Project { Id = 5, Title = "Unique Project", Description = "Special", ImageUrl = "unique.jpg" }
+    };
+
+        context.PortfolioUsers.Add(user);
+        await context.SaveChangesAsync();
+
+        var validator = new Mock<IPortfolioValidator>();
+        var service = new ProjectService(context, validator.Object);
+
+        var result = await service.GetProjectByIdAsync(1, 5);
+
+        Assert.NotNull(result);
+        Assert.Equal("Unique Project", result.Title);
+    }
+
+    [Fact]
+    public async Task GetProjectsAsync_ShouldReturnAllProjects_WhenTheyExist()
+    {
+        using var context = _fixture.CreateNewContext();
+
+        var user1 = _fixture.CreateUser(1, "User One");
+        var user2 = _fixture.CreateUser(2, "User Two");
+
+        user1.Projects = new List<Project>
+    {
+        new Project { Id = 101, Title = "Alpha", Description = "Project A", ImageUrl = "a.jpg" },
+    };
+
+        user2.Projects = new List<Project>
+    {
+        new Project { Id = 102, Title = "Beta", Description = "Project B", ImageUrl = "b.jpg" },
+        new Project { Id = 103, Title = "Gamma", Description = "Project C", ImageUrl = "c.jpg" },
+    };
+
+        context.PortfolioUsers.AddRange(user1, user2);
+        await context.SaveChangesAsync();
+
+        var validator = new Mock<IPortfolioValidator>();
+        var service = new ProjectService(context, validator.Object);
+
+        var result = await service.GetProjectsAsync();
+
+        Assert.Equal(3, result.Count);
+        Assert.Contains(result, p => p.Title == "Alpha");
+        Assert.Contains(result, p => p.Title == "Beta");
+        Assert.Contains(result, p => p.Title == "Gamma");
+    }
+
+    [Fact]
+    public async Task GetProjectsAsync_ShouldReturnEmptyList_WhenNoProjectsExist()
+    {
+        using var context = _fixture.CreateNewContext();
+
+        // No projects or users added
+        var validator = new Mock<IPortfolioValidator>();
+        var service = new ProjectService(context, validator.Object);
+
+        var result = await service.GetProjectsAsync();
+
+        Assert.NotNull(result);    // list shouldn't be null
+        Assert.Empty(result);      // but it should be empty
+    }
+
 }

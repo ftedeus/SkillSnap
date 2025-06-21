@@ -13,15 +13,7 @@ public class PortfolioUserService : IPortfolioUserService
     private readonly IPortfolioValidator _validator;
 
     private readonly ILogger<PortfolioUserService> _logger;
-    // public PortfolioUserService(SkillSnapContext db)
-    // {
-    //     _db = db;
-    // }
-    // public PortfolioUserService(SkillSnapContext db, PortfolioUserValidator validator)
-    // {
-    //     _db = db;
-    //     _validator = validator;
-    // }
+
     public PortfolioUserService(SkillSnapContext db, IPortfolioValidator validator, ILogger<PortfolioUserService> logger)
 {
     _db = db;
