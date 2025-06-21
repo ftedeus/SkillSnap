@@ -17,8 +17,8 @@ jobs:
       - name: 🧰 Setup .NET SDK
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '9.0.x'   # Adjust if you're using .NET 8 or 7
-          dotnet-quality: 'preview' # Remove if not using a preview SDK
+          dotnet-version: '9.0.x'
+          dotnet-quality: 'preview'
 
       - name: 📦 Restore dependencies
         run: dotnet restore SkillSnap.sln
@@ -26,15 +26,20 @@ jobs:
       - name: 🛠️ Build solution
         run: dotnet build SkillSnap.sln --configuration Release --no-restore
 
-      - name: ✅ Run tests and generate TRX report
-        run: dotnet test SkillSnap.sln --no-build --configuration Release --verbosity normal --logger "trx;LogFileName=test_results.trx"
+      - name: ✅ Run tests with code coverage
+        run: dotnet test SkillSnap.Tests/SkillSnap.Tests.csproj --no-build --configuration Release --verbosity normal --collect:"XPlat Code Coverage" --results-directory ./TestResults
 
-      - name: 📄 Upload test results
+      - name: 🔧 Install ReportGenerator tool
+        run: dotnet tool install --global dotnet-reportgenerator-globaltool
+
+      - name: 📊 Generate HTML coverage report
+        run: |
+          reportgenerator -reports:"**/coverage.cobertura.xml" -targetdir:"CoverageReport" -reporttypes:Html
+        env:
+          PATH: ${{ runner.tool_cache }}/dotnet/tools:$PATH
+
+      - name: 📄 Upload coverage report
         uses: actions/upload-artifact@v4
         with:
-          name: TestResults
-          path: '**/TestResults/*.trx'
-
-      # Optional: publish project output
-      # - name: 🚀 Publish Server
-      #   run: dotnet publish Server/Server.csproj --configuration Release --output ./publish
+          name: CoverageReport
+          path: CoverageReport
