@@ -30,7 +30,7 @@ jobs:
         run: dotnet test SkillSnap.sln --no-build --configuration Release --verbosity normal --logger "trx;LogFileName=test_results.trx"
 
       - name: 📄 Upload test results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: TestResults
           path: '**/TestResults/*.trx'
