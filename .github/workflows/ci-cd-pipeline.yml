@@ -33,11 +33,11 @@ jobs:
         run: dotnet tool install --global dotnet-reportgenerator-globaltool
 
       - name: 📊 Generate HTML coverage report
-        run: |
-          dotnet tool install --global dotnet-reportgenerator-globaltool || echo "Already installed"
-          dotnet reportgenerator -reports:"**/coverage.cobertura.xml" -targetdir:"CoverageReport" -reporttypes:Html
-        env:
-          PATH: ${{ env.PATH }}:${{ runner.tool_cache }}/.dotnet/tools:$HOME/.dotnet/tools
+        uses: danielpalme/ReportGenerator-GitHub-Action@5.4.8
+        with:
+          reports: '**/coverage.cobertura.xml'
+          targetdir: 'CoverageReport'
+          reporttypes: 'Html'
 
 
       - name: 📄 Upload coverage report
