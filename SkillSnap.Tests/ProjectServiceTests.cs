@@ -65,7 +65,7 @@ public class ProjectServiceTests : IClassFixture<ProjectServiceFixture>
     {
 
 
-        using var _context = _fixture.CreateNewContext();
+        using var context = _fixture.CreateNewContext();
 
 
         var user = new PortfolioUser
@@ -79,13 +79,13 @@ public class ProjectServiceTests : IClassFixture<ProjectServiceFixture>
             new Project { Id = 10, Title = "Old Title", Description = "Old Desc", ImageUrl = "old.jpg" }
         }
         };
-        _context.PortfolioUsers.Add(user);
-        await _context.SaveChangesAsync();
+        context.PortfolioUsers.Add(user);
+        await context.SaveChangesAsync();
 
 
         _validator.Setup(v => v.ProjectTitleExistsAsync(1, "New Title", 10)).ReturnsAsync(false);
 
-        var service = new ProjectService(_context, _validator.Object);
+        var service = new ProjectService(context, _validator.Object);
         var dto = new ProjectDto { Title = "New Title", Description = "Updated Desc", ImageUrl = "new.jpg" };
 
         // Act
@@ -100,10 +100,8 @@ public class ProjectServiceTests : IClassFixture<ProjectServiceFixture>
     [Fact]
     public async Task DeleteProjectAsync_ShouldDeleteProject_WhenExists()
     {
-
-
-        using var _context = _fixture.CreateNewContext();
-
+        // Arrange
+        using var context = _fixture.CreateNewContext();
 
         var user = new PortfolioUser
         {
@@ -116,60 +114,57 @@ public class ProjectServiceTests : IClassFixture<ProjectServiceFixture>
             new Project { Id = 20, Title = "To Delete", Description = "Gone soon", ImageUrl = "del.jpg" }
         }
         };
-        _context.PortfolioUsers.Add(user);
-        await _context.SaveChangesAsync();
+        context.PortfolioUsers.Add(user);
+        await context.SaveChangesAsync();
 
-
-        //var mockValidator = CreateValidatorMock();
-
-        var service = new ProjectService(_context, _validator.Object);
+        var validator = new Mock<IPortfolioValidator>();
+        var service = new ProjectService(context, validator.Object);
 
         // Act
         var result = await service.DeleteProjectAsync(2, 20);
 
         // Assert
         Assert.True(result);
-        Assert.Empty(_context.Projects.Where(p => p.Id == 20));
+        Assert.Empty(context.Projects.Where(p => p.Id == 20));
+    }
+
+
+
+    [Fact]
+    public async Task DeleteProjectAsync_ShouldReturnFalse_WhenProjectDoesNotExist()
+    {
+        // Arrange
+        using var context = _fixture.CreateNewContext(); // Fresh DB with no seeded projects
+        var validator = new Mock<IPortfolioValidator>(); // No validation needed for this test
+
+        var service = new ProjectService(context, validator.Object);
+
+        // Act
+        var result = await service.DeleteProjectAsync(userId: 42, projectId: 999); // IDs that do not exist
+
+        // Assert
+        Assert.False(result); // Should return false when nothing is deleted
     }
 
     [Fact]
     public async Task UpdateProjectAsync_ShouldReturnNull_WhenProjectNotFound()
     {
         // Arrange
+        using var context = _fixture.CreateNewContext(); // Fresh in-memory DB
+        var validator = new Mock<IPortfolioValidator>(); // Fresh mock to avoid conflicts
 
-        using var _context = _fixture.CreateNewContext();
-
-
-
-
-        var service = new ProjectService(_context, _validator.Object);
-
-        var updateDto = new ProjectDto { Title = "Doesn't Matter", Description = "None", ImageUrl = "none.jpg" };
+        var service = new ProjectService(context, validator.Object);
+        var updateDto = new ProjectDto
+        {
+            Title = "Nonexistent Project",
+            Description = "No update here",
+            ImageUrl = "https://example.com/ghost.jpg"
+        };
 
         // Act
-        var result = await service.UpdateProjectAsync(userId: 1, projectId: 999, updateDto);
+        var result = await service.UpdateProjectAsync(userId: 99, projectId: 999, updateDto);
 
         // Assert
         Assert.Null(result);
     }
-    
-    [Fact]
-    public async Task DeleteProjectAsync_ShouldReturnFalse_WhenProjectDoesNotExist()
-    {
-        // Arrange
-
-  using var _context = _fixture.CreateNewContext();
- 
-
-        //var mockValidator = CreateValidatorMock();
-        var service = new ProjectService(_context, _validator.Object);
-
-        // Act
-        var result = await service.DeleteProjectAsync(userId: 1, projectId: 999);
-
-        // Assert
-        Assert.False(result);
-    }
-
-
 }

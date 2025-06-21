@@ -21,15 +21,7 @@ public class ProjectServiceFixture
         return new SkillSnapContext(options);
     }
 
-    // public PortfolioUser CreateUser(int id = 1) => new PortfolioUser
-    // {
-    //     Id = id,
-    //     Name = $"User{id}",
-    //     Bio = "Testing",
-    //     ProfileImageUrl = $"https://example.com/user{id}.jpg",
-    //     Projects = new List<Project>()
-    // };
-
+ 
 public PortfolioUser CreateUser(int id = 1, string name = "User")
 {
     return new PortfolioUser
