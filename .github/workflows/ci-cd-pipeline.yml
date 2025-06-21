@@ -34,9 +34,11 @@ jobs:
 
       - name: 📊 Generate HTML coverage report
         run: |
-          reportgenerator -reports:"**/coverage.cobertura.xml" -targetdir:"CoverageReport" -reporttypes:Html
+          dotnet tool install --global dotnet-reportgenerator-globaltool
+          dotnet reportgenerator -reports:"**/coverage.cobertura.xml" -targetdir:"CoverageReport" -reporttypes:Html
         env:
-          PATH: ${{ runner.tool_cache }}/dotnet/tools:$PATH
+          PATH: ${{ env.PATH }}:$HOME/.dotnet/tools
+
 
       - name: 📄 Upload coverage report
         uses: actions/upload-artifact@v4
